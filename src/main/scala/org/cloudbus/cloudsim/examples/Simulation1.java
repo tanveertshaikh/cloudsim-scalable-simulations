@@ -1,46 +1,26 @@
 package org.cloudbus.cloudsim.examples;
 
-/*
- * Title:        CloudSim Toolkit
- * Description:  CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation
- *               of Clouds
- * Licence:      GPL - http://www.gnu.org/copyleft/gpl.html
- *
- * Copyright (c) 2009, The University of Melbourne, Australia
- */
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.cloudbus.cloudsim.*;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.core.util.StatusPrinter;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 
-import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
-import org.cloudbus.cloudsim.Datacenter;
-import org.cloudbus.cloudsim.DatacenterBroker;
-import org.cloudbus.cloudsim.DatacenterCharacteristics;
-import org.cloudbus.cloudsim.Host;
-import org.cloudbus.cloudsim.Log;
-import org.cloudbus.cloudsim.Pe;
-import org.cloudbus.cloudsim.Storage;
-import org.cloudbus.cloudsim.UtilizationModel;
-import org.cloudbus.cloudsim.UtilizationModelFull;
-import org.cloudbus.cloudsim.Vm;
-import org.cloudbus.cloudsim.VmAllocationPolicySimple;
-import org.cloudbus.cloudsim.VmSchedulerTimeShared;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 
 /**
- * A simple example showing how to create a data center with one host and run one cloudlet on it.
+ * A CloudSim Simulation showing how to create a data center with one host and run one cloudlet on it.
  */
 public class Simulation1 {
 
@@ -58,11 +38,18 @@ public class Simulation1 {
      */
     @SuppressWarnings("unused")
     public static void main(String[] args) {
+
+        Config defaultConfig = ConfigFactory.parseResources("defaults.conf");
+
+        Config fallbackConfig = ConfigFactory.parseResources("overrides.conf")
+                .withFallback(defaultConfig)
+                .resolve();
+
         Log.printLine("Starting CloudSimExample1...");
 
         try {
             // First step: Initialize the CloudSim package. It should be called before creating any entities.
-            int num_user = 1; // number of cloud users
+            int num_user = fallbackConfig.getInt("cloud.num_user"); // number of cloud users
             Calendar calendar = Calendar.getInstance(); // Calendar whose fields have been initialized with the current date and time.
             boolean trace_flag = false; // trace events
 
@@ -101,16 +88,28 @@ public class Simulation1 {
             vmlist = new ArrayList<Vm>();
 
             // VM description
-            int vmid = 0;
-            int mips = 1000;
-            long size = 10000; // image size (MB)
-            int ram = 512; // vm memory (MB)
-            long bw = 1000;
-            int pesNumber = 1; // number of cpus
-            String vmm = "Xen"; // VMM name
+            int vmid = fallbackConfig.getInt("vm.vmid");
+            int mips = fallbackConfig.getInt("vm.mips");
+            long size = fallbackConfig.getLong("vm.size"); // image size (MB)
+            int ram = fallbackConfig.getInt("vm.ram"); // vm memory (MB)
+            long bw = fallbackConfig.getLong("vm.bw");
+            int pesNumber = fallbackConfig.getInt("vm.pesNumber"); // number of cpus
+            String vmm = fallbackConfig.getString("vm.vmm");; // VMM name
 
             // create VM
-            Vm vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+            int cloudletSchedulingPolicy = fallbackConfig.getInt("vm.cloudletScheduling");
+            Vm vm = null;
+            switch(cloudletSchedulingPolicy) {
+                case 1:
+                    vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerDynamicWorkload(mips, pesNumber));
+                    break;
+                case 2:
+                    vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+                    break;
+                case 3:
+                    vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared());
+                    break;
+            }
 
             // add the VM to the vmList
             vmlist.add(vm);
@@ -122,16 +121,15 @@ public class Simulation1 {
             cloudletList = new ArrayList<Cloudlet>();
 
             // Cloudlet properties
-            int id = 0;
-            long length = 400000;
-            long fileSize = 300;
-            long outputSize = 300;
+            int id = fallbackConfig.getInt("cloudlet.id");
+            long length = fallbackConfig.getLong("cloudlet.length");
+            long fileSize = fallbackConfig.getLong("cloudlet.fileSize");
+            long outputSize = fallbackConfig.getLong("cloudlet.outputSize");
             UtilizationModel utilizationModel = new UtilizationModelFull();
 
             Cloudlet cloudlet =
                     new Cloudlet(id, length, pesNumber, fileSize,
-                            outputSize, utilizationModel, utilizationModel,
-                            utilizationModel);
+                            outputSize, utilizationModel, utilizationModel, utilizationModel);
             cloudlet.setUserId(brokerId);
             cloudlet.setVmId(vmid);
 
@@ -166,6 +164,12 @@ public class Simulation1 {
      */
     private static Datacenter createDatacenter(String name) {
 
+        Config defaultConfig = ConfigFactory.parseResources("defaults.conf");
+
+        Config fallbackConfig = ConfigFactory.parseResources("overrides.conf")
+                .withFallback(defaultConfig)
+                .resolve();
+
         // Here are the steps needed to create a PowerDatacenter:
         // 1. We need to create a list to store
         // our machine
@@ -175,42 +179,48 @@ public class Simulation1 {
         // In this example, it will have only one core.
         List<Pe> peList = new ArrayList<Pe>();
 
-        int mips = 1000;
+        int mips = fallbackConfig.getInt("pe.mips");
 
         // 3. Create PEs and add these into a list.
         peList.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
 
         // 4. Create Host with its id and list of PEs and add them to the list
         // of machines
-        int hostId = 0;
-        int ram = 2048; // host memory (MB)
-        long storage = 1000000; // host storage
-        int bw = 10000;
+        int hostId = fallbackConfig.getInt("host.hostId");
+        int ram = fallbackConfig.getInt("host.ram"); // host memory (MB)
+        long storage = fallbackConfig.getLong("host.storage"); // host storage
+        int bw = fallbackConfig.getInt("host.bw");
 
-        hostList.add(
-                new Host(
-                        hostId,
-                        new RamProvisionerSimple(ram),
-                        new BwProvisionerSimple(bw),
-                        storage,
-                        peList,
-                        new VmSchedulerTimeShared(peList)
-                )
-        ); // This is our machine
+        int vmSchedulingPolicy = fallbackConfig.getInt("host.vmScheduling");
+
+        Host currentHost = null;
+        switch(vmSchedulingPolicy) {
+            case 1:
+                currentHost = new Host(hostId, new RamProvisionerSimple(ram), new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeShared(peList));
+                break;
+            case 2:
+                currentHost = new Host(hostId, new RamProvisionerSimple(ram), new BwProvisionerSimple(bw), storage, peList, new VmSchedulerSpaceShared(peList));
+                break;
+            case 3:
+                currentHost = new Host(hostId, new RamProvisionerSimple(ram), new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeSharedOverSubscription(peList));
+                break;
+        }
+
+        hostList.add(currentHost); // This is our machine
 
         // 5. Create a DatacenterCharacteristics object that stores the
         // properties of a data center: architecture, OS, list of
         // Machines, allocation policy: time- or space-shared, time zone
         // and its price (G$/Pe time unit).
-        String arch = "x86"; // system architecture
-        String os = "Linux"; // operating system
-        String vmm = "Xen";
-        double time_zone = 10.0; // time zone this resource located
-        double cost = 3.0; // the cost of using processing in this resource
-        double costPerMem = 0.05; // the cost of using memory in this resource
-        double costPerStorage = 0.001; // the cost of using storage in this
+        String arch = fallbackConfig.getString("datacenter.arch"); // system architecture
+        String os = fallbackConfig.getString("datacenter.os"); // operating system
+        String vmm = fallbackConfig.getString("datacenter.vmm");
+        double time_zone = fallbackConfig.getDouble("datacenter.time_zone"); // time zone this resource located
+        double cost = fallbackConfig.getDouble("datacenter.cost"); // the cost of using processing in this resource
+        double costPerMem = fallbackConfig.getDouble("datacenter.costPerMem"); // the cost of using memory in this resource
+        double costPerStorage = fallbackConfig.getDouble("datacenter.costPerStorage"); // the cost of using storage in this
         // resource
-        double costPerBw = 0.0; // the cost of using bw in this resource
+        double costPerBw = fallbackConfig.getDouble("datacenter.costPerBw"); // the cost of using bw in this resource
         LinkedList<Storage> storageList = new LinkedList<Storage>(); // we are not adding SAN
         // devices by now
 
