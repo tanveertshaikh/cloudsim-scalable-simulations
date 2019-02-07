@@ -1,23 +1,20 @@
 package org.cloudbus.cloudsim.examples;
 
+import ch.qos.logback.classic.Logger;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.cloudbus.cloudsim.*;
+import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
+import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
+import org.slf4j.LoggerFactory;
+
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import org.cloudbus.cloudsim.*;
-import org.slf4j.LoggerFactory;
-import ch.qos.logback.core.util.StatusPrinter;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
-
-import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
-import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
-import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
 
 /**
  * A CloudSim Simulation showing how to create a data center with one host and run one cloudlet on it.
@@ -26,9 +23,13 @@ public class Simulation1 {
 
     static final Logger LOG = (Logger) LoggerFactory.getLogger(Simulation1.class);
 
-    /** The cloudlet list. */
+    /**
+     * The cloudlet list.
+     */
     private static List<Cloudlet> cloudletList;
-    /** The vmlist. */
+    /**
+     * The vmlist.
+     */
     private static List<Vm> vmlist;
 
     /**
@@ -94,12 +95,13 @@ public class Simulation1 {
             int ram = fallbackConfig.getInt("vm.ram"); // vm memory (MB)
             long bw = fallbackConfig.getLong("vm.bw");
             int pesNumber = fallbackConfig.getInt("vm.pesNumber"); // number of cpus
-            String vmm = fallbackConfig.getString("vm.vmm");; // VMM name
+            String vmm = fallbackConfig.getString("vm.vmm");
+            ; // VMM name
 
             // create VM
             int cloudletSchedulingPolicy = fallbackConfig.getInt("vm.cloudletScheduling");
             Vm vm = null;
-            switch(cloudletSchedulingPolicy) {
+            switch (cloudletSchedulingPolicy) {
                 case 1:
                     vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerDynamicWorkload(mips, pesNumber));
                     break;
@@ -159,7 +161,6 @@ public class Simulation1 {
      * Creates the datacenter.
      *
      * @param name the name
-     *
      * @return the datacenter
      */
     private static Datacenter createDatacenter(String name) {
@@ -194,7 +195,7 @@ public class Simulation1 {
         int vmSchedulingPolicy = fallbackConfig.getInt("host.vmScheduling");
 
         Host currentHost = null;
-        switch(vmSchedulingPolicy) {
+        switch (vmSchedulingPolicy) {
             case 1:
                 currentHost = new Host(hostId, new RamProvisionerSimple(ram), new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeShared(peList));
                 break;
@@ -242,6 +243,7 @@ public class Simulation1 {
     // We strongly encourage users to develop their own broker policies, to
     // submit vms and cloudlets according
     // to the specific rules of the simulated scenario
+
     /**
      * Creates the broker.
      *
