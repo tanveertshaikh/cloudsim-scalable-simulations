@@ -1,4 +1,3 @@
-// ad switch case of time sapce, logerr.warn, etc, fallback
 package org.cloudbus.cloudsim.examples
 
 import java.text.DecimalFormat
@@ -14,24 +13,24 @@ import org.cloudbus.cloudsim.provisioners.{BwProvisionerSimple, PeProvisionerSim
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
 
-/**
-  * An example showing how to create
-  * scalable simulations.
-  */
+/*
+ * A CloudSim Simulation showing how to create scalable simulations.
+ */
+
+// main-class
 object FaaSSimulationScalable extends App with LazyLogging {
-//object FaaSSimulationScalable extends App {
 
-  val defaultConfig: Config = ConfigFactory.parseResources("defaults.conf")
-  val fallbackConfig: Config = ConfigFactory.parseResources("overrides.conf").withFallback(defaultConfig).resolve
+  // Lightbend (Typesafe) configuration manager loading .conf files
+  val defaultConfig = ConfigFactory.parseResources("defaults.conf")
+  val fallbackConfig = ConfigFactory.parseResources("overrides.conf").withFallback(defaultConfig).resolve
+  logger.info("Configuration files loaded")
 
-  /** The cloudlet list. */
-  //private val cloudletList = new mutable.ListBuffer[Cloudlet]()(40)
-  /** The vmlist. */
-  //private val vmlist = new mutable.ListBuffer[Vm]()(20)
-
-  private def createVM(userId: Int, vms: Int): mutable.ListBuffer[Vm] = { //Creates a container to store VMs. This list is passed to the broker later
+  // Creates a container to store VMs. This list is passed to the broker later
+  private def createVM(userId: Int, vms: Int) = {
     val list = new mutable.ListBuffer[Vm]()
+
     //VM Parameters
+    //VM Description
     val size = 10000
     //image size (MB)
     val ram = 512
@@ -54,7 +53,8 @@ object FaaSSimulationScalable extends App with LazyLogging {
     list
   }
 
-  private def createCloudlet(userId: Int, cloudlets: Int): mutable.ListBuffer[Cloudlet] = { // Creates a container to store Cloudlets
+  // Creates a container to store Cloudlets
+  private def createCloudlet(userId: Int, cloudlets: Int) = {
     val list = new mutable.ListBuffer[Cloudlet]()
     //cloudlet parameters
     val length = 1000
@@ -73,38 +73,79 @@ object FaaSSimulationScalable extends App with LazyLogging {
     list
   }
 
-  /**
-    * Creates main() to run this example
-    */
+  /*
+   * Creates main() to run this example
+   */
   Log.printLine("Starting CloudSimExample6...")
-  logger.info("Tanveer")
-  try { // First step: Initialize the CloudSim package. It should be called
-    // before creating any entities.
+
+  // First step: Initialize the CloudSim package. It should be called before creating any entities
+  try {
+
+    // number of grid (cloud) users
     val num_user = fallbackConfig.getInt("broker.num_user")
-    // number of grid users
+
+    // Calendar whose fields have been initialized with the current date and time
     val calendar = Calendar.getInstance
-    val trace_flag = false // mean trace events
+
+    // boolean to toggle trace events
+    val trace_flag = false
+
+    /*
+     * Initialize the CloudSim library.
+     * init() invokes initCommonVariable() which in turn calls initialize() (all these 3 methods are defined in CloudSim.java).
+     * initialize() creates two collections - an ArrayList of SimEntity Objects (named entities which denote the simulation entities) and
+     * a LinkedHashMap (named entitiesByName which denote the LinkedHashMap of the same simulation entities), with name of every SimEntity as the key.
+     * initialize() creates two queues - a Queue of SimEvents (future) and another Queue of SimEvents (deferred).
+     * initialize() creates a HashMap of of Predicates (with integers as keys) - these predicates are used to select a particular event from the deferred queue.
+     * initialize() sets the simulation clock to 0 and running (a boolean flag) to false.
+     * Once initialize() returns (note that we are in method initCommonVariable() now), a CloudSimShutDown (which is derived from SimEntity) instance is created
+     * (with numuser as 1, its name as CloudSimShutDown, id as -1, and state as RUNNABLE). Then this new entity is added to the simulation
+     * While being added to the simulation, its id changes to 0 (from the earlier -1). The two collections - entities and entitiesByName are updated with this SimEntity.
+     * the shutdownId (whose default value was -1) is 0
+     * Once initCommonVariable() returns (note that we are in method init() now), a CloudInformationService (which is also derived from SimEntity) instance is created
+     * (with its name as CloudInformatinService, id as -1, and state as RUNNABLE). Then this new entity is also added to the simulation.
+     * While being added to the simulation, the id of the SimEntitiy is changed to 1 (which is the next id) from its earlier value of -1.
+     * The two collections - entities and entitiesByName are updated with this SimEntity.
+     * the cisId(whose default value is -1) is 1
+     */
+
     // Initialize the CloudSim library
     CloudSim.init(num_user, calendar, trace_flag)
+    logger.info("Cloudsim library initialized")
+
     // Second step: Create Datacenters
     //Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
     @SuppressWarnings(Array("unused")) val datacenter0 = createDatacenter("Datacenter_0")
     @SuppressWarnings(Array("unused")) val datacenter1 = createDatacenter("Datacenter_1")
+    logger.info("CIS created")
+    logger.info("Datacenter creation completed")
+
     //Third step: Create Broker
     val Some(broker) = createBroker
+    logger.info("Broker instance created")
+
     val brokerId = broker.getId
-    //Fourth step: Create VMs and Cloudlets and send them to broker
+
+    // Fourth step: Create VMs and Cloudlets and send them to broker
+    // The Vm List
     val vmlist = createVM(brokerId, 20) //creating 20 vms
 
+    //The Cloudlet List
     val cloudletList = createCloudlet(brokerId, 40) // creating 40 cloudlets
 
     broker.submitVmList(vmlist.toList.asJava)
     broker.submitCloudletList(cloudletList.toList.asJava)
+    logger.info("CloudletList and vmList submitted to broker")
+
     // Fifth step: Starts the simulation
     CloudSim.startSimulation
+    logger.info("Simulation started")
+
     // Final step: Print results when simulation is over
     val newList = broker.getCloudletReceivedList
     CloudSim.stopSimulation()
+    logger.info("Simulation stopped")
+
     printCloudletList(newList)
     Log.printLine("CloudSimExample6 finished!")
   } catch {
@@ -113,7 +154,7 @@ object FaaSSimulationScalable extends App with LazyLogging {
       Log.printLine("The simulation has been terminated due to an unexpected error")
   }
 
-  private def createDatacenter(name: String): Option[Datacenter] = { // Here are the steps needed to create a PowerDatacenter:
+  private def createDatacenter(name: String) = { // Here are the steps needed to create a PowerDatacenter:
 
     val defaultConfig = ConfigFactory.parseResources("defaults.conf")
 
@@ -213,15 +254,13 @@ object FaaSSimulationScalable extends App with LazyLogging {
 
   //We strongly encourage users to develop their own broker policies, to submit vms and cloudlets according
   //to the specific rules of the simulated scenario
-  private def createBroker: Option[DatacenterBroker] = {
-    try {
-      val broker: DatacenterBroker = new DatacenterBroker("Broker")
-      Some(broker)
-    }
-    catch {
-      case e: Exception => e.printStackTrace()
-        None
-    }
+  private def createBroker = try {
+    val broker = new DatacenterBroker("Broker")
+    Some(broker)
+  }
+  catch {
+    case e: Exception => e.printStackTrace()
+      None
   }
 
   /**
@@ -244,3 +283,4 @@ object FaaSSimulationScalable extends App with LazyLogging {
     })
   }
 }
+// TODO - ad switch case of time sapce, logerr.warn, fallback, cloudlet settings and vm settings
