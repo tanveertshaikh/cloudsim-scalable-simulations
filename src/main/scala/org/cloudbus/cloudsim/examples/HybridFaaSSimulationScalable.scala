@@ -24,15 +24,15 @@ object HybridFaaSSimulationScalable extends App with LazyLogging {
 
   // Lightbend (Typesafe) configuration manager loading .conf files
   val defaultConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
-  val fallbackConfig: Config = ConfigFactory.parseResources("overrides_simulation3.conf")
-    .withFallback(defaultConfig).resolve
+  val fallbackConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
+    .withFallback(HybridFaaSSimulationScalable.defaultConfig).resolve
   logger.info("Configuration files loaded")
 
   // Creates a container to store VMs. This list is passed to the broker later
   def createVM(userId: Int, vms: Int) = {
 
     val defaultConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
-    val fallbackConfig: Config = ConfigFactory.parseResources("overrides_simulation3.conf")
+    val fallbackConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
       .withFallback(defaultConfig).resolve
     logger.info("Configuration files loaded")
 
@@ -61,7 +61,8 @@ object HybridFaaSSimulationScalable extends App with LazyLogging {
     val range_vms = immutable.List.range(0, vms)(Numeric.IntIsIntegral)
     range_vms.foreach((vm_no: Int) => {
 
-      val cloudletScheduling = fallbackConfig.getInt("vm.cloudletScheduling")
+      val cloudletScheduling = 4
+      //val cloudletScheduling = fallbackConfig.getInt("vm.cloudletScheduling")
 
       vm(vm_no) = cloudletScheduling match {
         case 1 => new Vm(vm_no, userId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerDynamicWorkload(mips, pesNumber))
@@ -84,7 +85,7 @@ object HybridFaaSSimulationScalable extends App with LazyLogging {
   def createCloudlet(userId: Int, cloudlets: Int) = {
 
     val defaultConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
-    val fallbackConfig: Config = ConfigFactory.parseResources("overrides_simulation3.conf")
+    val fallbackConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
       .withFallback(defaultConfig).resolve
     logger.info("Configuration files loaded")
 
@@ -221,7 +222,7 @@ object HybridFaaSSimulationScalable extends App with LazyLogging {
 
     // Lightbend (Typesafe) configuration manager loading .conf files
     val defaultConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
-    val fallbackConfig: Config = ConfigFactory.parseResources("overrides_simulation3.conf")
+    val fallbackConfig: Config = ConfigFactory.parseResources("defaults_simulation3.conf")
       .withFallback(defaultConfig).resolve
     logger.info("Configuration files loaded")
 
