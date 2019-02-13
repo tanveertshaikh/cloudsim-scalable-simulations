@@ -1,4 +1,4 @@
-# Homework 1 - CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation of Clouds
+# CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation of Clouds
 ## Description: Create cloud simulators for evaluating executions of applications in cloud datacenters with different characteristics and deployment models.
 ### Name: Tanveer Shaikh
 
