@@ -1,4 +1,4 @@
-# CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation of Clouds
+# CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation of Clouds [![Build Status](https://travis-ci.com/tanveertshaikh/cloudsim-scalable-simulations.svg?branch=master)](https://travis-ci.com/tanveertshaikh/cloudsim-scalable-simulations)
 ## Description: Create cloud simulators for evaluating executions of applications in cloud datacenters with different characteristics and deployment models.
 ### Name: Tanveer Shaikh
 
